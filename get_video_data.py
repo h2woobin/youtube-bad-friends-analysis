@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from tqdm import tqdm
 
 API_KEY = "AIzaSyA7h2QD0OiVj3sdQwCtPUwqxhu00H2BW0M" #나의 API
 CHANNEL_ID = "UCmuRHGhh-g0f9f5JiuW6dMw" #Bad friends의 API
@@ -19,17 +20,29 @@ def get_upload_playlist_id(api_key, channel_id):
     return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
 
-def get_video_ids_from_playlist(api_key, playlist_id, max_results=30):
+def get_all_video_ids_from_playlist(api_key, playlist_id):
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
-    params = {
-        "part": "contentDetails",
-        "playlistId": playlist_id,
-        "maxResults": max_results,
-        "key": api_key
-    }
-    res = requests.get(url, params=params)
-    items = res.json().get("items", [])
-    return [item["contentDetails"]["videoId"] for item in items]
+    video_ids = []
+    next_page_token = None
+
+    while True:
+        params = {
+            "part": "contentDetails",
+            "playlistId": playlist_id,
+            "maxResults": 50,
+            "pageToken": next_page_token,
+            "key": api_key
+        }
+        res = requests.get(url, params=params)
+        data = res.json()
+        items = data.get("items", [])
+        video_ids += [item["contentDetails"]["videoId"] for item in items]
+
+        next_page_token = data.get("nextPageToken")
+        if not next_page_token:
+            break
+
+    return video_ids
 
 def get_video_details(api_key, video_ids):
     url = "https://www.googleapis.com/youtube/v3/videos"
@@ -57,16 +70,29 @@ def get_video_details(api_key, video_ids):
         })
     return pd.DataFrame(data)
 
+def get_video_details_batched(api_key, video_ids, batch_size=50):
+    all_data = []
+    for i in tqdm(range(0, len(video_ids), batch_size)):
+        batch = video_ids[i:i+batch_size]
+        df = get_video_details(api_key, batch)
+        all_data.append(df)
+    return pd.concat(all_data, ignore_index=True)
+
+
 # ▶ 실행 순서
 playlist_id = get_upload_playlist_id(API_KEY, CHANNEL_ID)
 if playlist_id:
-    video_ids = get_video_ids_from_playlist(API_KEY, playlist_id, max_results=30)
-    print("📺 가져온 영상 ID:", video_ids)
+    video_ids = get_all_video_ids_from_playlist(API_KEY, playlist_id)
+    print(f"📺 전체 영상 수: {len(video_ids)}")
 
     if video_ids:
-        df = get_video_details(API_KEY, video_ids)
-        df.to_csv("video_metadata.csv", index=False)
-        print("✅ 영상 메타데이터 저장 완료! → 'video_metadata.csv'")
+        df_all = get_video_details_batched(API_KEY, video_ids)
+        df_all["viewCount"] = pd.to_numeric(df_all["viewCount"], errors="coerce")
+
+        # 조회수 상위 30개만 선택
+        df_top30 = df_all.sort_values(by="viewCount", ascending=False).head(30)
+        df_top30.to_csv("top_30_by_views.csv", index=False)
+        print("✅ 조회수 상위 30개 영상 저장 완료! → 'top_30_by_views.csv'")
     else:
         print("❌ 영상 ID를 가져오지 못했습니다.")
 else:
