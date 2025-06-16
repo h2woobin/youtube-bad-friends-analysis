@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 
 API_KEY = "AIzaSyA7h2QD0OiVj3sdQwCtPUwqxhu00H2BW0M" #나의 API
-CHANNEL_ID = "UCmuRHGhh-g0f9f5JiuW6dMw" #Bad friends의 API
+CHANNEL_ID = "UCRBpynZV0b7ww2XMCfC17qg" #Bad friends의 API
 
 def get_upload_playlist_id(api_key, channel_id):
     url = "https://www.googleapis.com/youtube/v3/channels"
