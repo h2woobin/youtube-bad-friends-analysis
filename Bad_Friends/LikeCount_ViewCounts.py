@@ -14,7 +14,6 @@ plt.xlabel("View Counts")
 plt.ylabel("Like Counts")
 plt.title("View Count vs Like Count")
 plt.grid(True)
-
 plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x/1_000_000)}M'))
 plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f'{int(y/1_000)}K'))
 
