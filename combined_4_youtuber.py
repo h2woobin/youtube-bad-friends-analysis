@@ -1,4 +1,19 @@
 import pandas as pd
+import re
+
+def parse_duration(duration_str):
+
+    hours = minutes = seconds = 0 
+
+    # 정규표현식에 맞는 값을 관호 기준으로 그룹으로 나눠줌 
+    # PT1H2M3S" 라는 문자열이 있으면 → group(1) = "1", group(2) = "2", group(3) = "3"
+    if isinstance(duration_str,str):
+        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration_str)
+        if match:
+            hours = int(match.group(1)) if match.group(1) else 0 
+            minutes = int(match.group(2)) if match.group(2) else 0 
+            seconds = int(match.group(3)) if match.group(3) else 0 
+    return hours * 3600 + minutes * 60 + seconds  
 
 files = {
     "techjoyce_top10.csv": "TechJoyce",
@@ -40,5 +55,7 @@ for file, channel in files.items():
 
     combined_df = pd.concat([combined_df, df], ignore_index=True)
 
+
+combined_df["duration_seconds"] = combined_df["duration"].apply(parse_duration)
 combined_df.to_csv("combined_top10_videos.csv", index=False)
 print("합치기 완료! 'combined_top10_videos.csv' 파일로 저장됐습니다.")
