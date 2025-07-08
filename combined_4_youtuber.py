@@ -13,7 +13,16 @@ def parse_duration(duration_str):
             hours = int(match.group(1)) if match.group(1) else 0 
             minutes = int(match.group(2)) if match.group(2) else 0 
             seconds = int(match.group(3)) if match.group(3) else 0 
-    return hours * 3600 + minutes * 60 + seconds  
+
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}hours")
+    if minutes > 0:
+        parts.append(f"{minutes} min")
+    if seconds > 0 or (hours == 0 and minutes == 0):
+        parts.append(f"{seconds} sec")
+    
+    return " ".join(parts)
 
 files = {
     "techjoyce_top10.csv": "TechJoyce",
@@ -56,6 +65,13 @@ for file, channel in files.items():
     combined_df = pd.concat([combined_df, df], ignore_index=True)
 
 
-combined_df["duration_seconds"] = combined_df["duration"].apply(parse_duration)
+combined_df["duration"] = combined_df["duration"].apply(parse_duration)
+
+for col in ["views","likes","comments"]:
+    combined_df[col] = combined_df[col].apply(lambda x: f"{int(x):,}")
+
 combined_df.to_csv("combined_top10_videos.csv", index=False)
 print("합치기 완료! 'combined_top10_videos.csv' 파일로 저장됐습니다.")
+
+# PermissionError: [Errno 13] Permission denied: 'combined_top10_videos.csv'
+# 파일이 열려 있다!
